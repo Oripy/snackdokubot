@@ -59,7 +59,7 @@ def reminder_message(url):
         title, author, rules, img = get_image_and_rules(url)
     except:
         pass
-    return f"Reminder to post Snackdoku today.\n**{title}** by *{author}*\n\n**Rules:**\n{rules}\n\nLink: {url}", img
+    return f"Reminder to post Snackdoku today.\n**{title}** {author}\n\n**Rules:**\n{rules}\n\nLink: {url}", img
 
 class Bot(discord.Client):
     def __init__(self, *args, **kwargs):
