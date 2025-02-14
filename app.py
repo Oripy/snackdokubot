@@ -11,8 +11,55 @@ intents.members = True
 schedule_file = "schedule.json"
 users_pref_file = "prefs.json"
 
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import TimeoutException
+from selenium.webdriver.common.by import By
+import io
+from PIL import Image
+
+def get_image_and_rules(url):
+    options = Options()
+    options.add_argument("--headless=new")
+
+    service = Service('/usr/lib/chromium-browser/chromedriver')
+
+    driver = webdriver.Chrome(options=options, service=service)
+    driver.get(url)
+
+    # Make sure the page is loaded properly
+    WebDriverWait(driver, 3).until(EC.presence_of_element_located((By.CLASS_NAME, 'dialog')))
+    WebDriverWait(driver, 3).until(EC.presence_of_element_located((By.ID, 'svgrenderer')))
+
+    # Hide SvenPeek so it does not appear on the screenshot
+    driver.execute_script('document.getElementById("svenpeek").remove()')
+
+    # Acknowledges the dialog
+    dialog = driver.find_element(By.CLASS_NAME, 'dialog')
+    dialog.find_element(By.CSS_SELECTOR, 'button').click()
+
+    # Screenshot the puzzle image
+    image_binary = driver.find_element(By.ID, 'svgrenderer').screenshot_as_png
+    img = Image.open(io.BytesIO(image_binary))
+
+    # Get the rest of the data from the page
+    title = driver.find_element(By.CLASS_NAME, 'puzzle-title').text
+    author = driver.find_element(By.CLASS_NAME, 'puzzle-author').text
+    rules = driver.find_element(By.CLASS_NAME, 'puzzle-rules').text
+
+    driver.close()
+    return title, author, rules, img
+
 def reminder_message(url):
-     return f"Reminder to post Snackdoku {url} today"
+    title, author, rules, img = None, None, None, None
+    try:
+        title, author, rules, img = get_image_and_rules(url)
+    except:
+        pass
+    return f"Reminder to post Snackdoku today.\n**{title}** by *{author}*\n\n**Rules:**\n{rules}\n\nLink: {url}", img
 
 class Bot(discord.Client):
     def __init__(self, *args, **kwargs):
@@ -110,7 +157,8 @@ class Bot(discord.Client):
                   reminder_time = self.user_list[sch[1]]['time']
                   if datetime.now().astimezone(utc).hour >= reminder_time:
                       user = self.get_user(self.user_list[sch[1]]['id'])
-                      await user.send(reminder_message(sch[2]))
+                      message, image = reminder_message(sch[2])
+                      await user.send(message)
                       await self.get_channel(1338945636107550774).send(f'Reminder sent to {user.mention} for puzzle {sch[2]}.')
                       # remove pending flag
                       self.schedule[i][3] = f'sent at {datetime.now(utc).isoformat()}'
