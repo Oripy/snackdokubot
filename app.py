@@ -121,48 +121,63 @@ class Bot(discord.Client):
                         await message.channel.send(f'Invalid date for line: **{line}**')
                         continue
                     member = None
-                    for guild in self.guilds:
-                        member_found = guild.get_member_named(values[1])
-                        if member_found:
-                            member = member_found
-                            if member.global_name not in self.user_list:
-                                self.user_list[member.global_name] = {'id': member.id, 'time': 13}
-                                self.save_users()
-                            break
-                    if not member:
-                        await message.channel.send(f'User not found for line: **{line}**')
-                        continue
-                    url = values[2]
-                    found = False
-                    for i in range(len(self.schedule)):
-                        if datetime.fromisoformat(self.schedule[i][0]) == date:
-                            self.schedule[i] = [date.isoformat(), member.global_name, url, status]
-                            found = True
-                            break
-                    if not found:
-                        self.schedule.append([date.isoformat(), member.global_name, url, status])
+                    if values[1] == 'delete':
+                        for i in range(len(self.schedule)):
+                            if datetime.fromisoformat(self.schedule[i][0]) == date:
+                                self.schedule.pop(i)
+                                await message.channel.send(f'schedule line for {date} has been removed')
+                                break
+                    else:
+                        for guild in self.guilds:
+                            member_found = guild.get_member_named(values[1])
+                            if member_found:
+                                member = member_found
+                                if member.global_name not in self.user_list:
+                                    self.user_list[member.global_name] = {'id': member.id, 'time': 13}
+                                    self.save_users()
+                                break
+                        if not member:
+                            await message.channel.send(f'User not found for line: **{line}**')
+                            continue
+                        url = values[2]
+                        found = False
+                        for i in range(len(self.schedule)):
+                            if datetime.fromisoformat(self.schedule[i][0]) == date:
+                                self.schedule[i] = [date.isoformat(), member.global_name, url, status]
+                                found = True
+                                break
+                        if not found:
+                            self.schedule.append([date.isoformat(), member.global_name, url, status])
                     self.schedule.sort(key=lambda sch: sch[0])
                     self.save_schedule()
                 for sch in self.schedule:
                     if (datetime.fromisoformat(sch[0]) + timedelta(days=1)) > datetime.now():
                         await message.channel.send(f'{datetime.fromisoformat(sch[0]).date().isoformat()}: {sch[1]} {sch[2]} {sch[3]}')
 
+            if message.content.startswith('$skip'):
+                for i in range(len(self.schedule)):
+                    if datetime.fromisoformat(self.schedule[i][0]).date() == datetime.now().date():
+                        self.schedule[i][3] = "skipped"
+                        await message.channel.send(f'schedule line for {date} has been skipped')
+                        self.save_schedule()
+                        break
+
     @tasks.loop(minutes=5)
     async def background_task(self):
-         for i in range(len(self.schedule)):
-              sch = self.schedule[i]
-              if sch[3] != 'pending':
-                  continue
-              if datetime.fromisoformat(sch[0]).astimezone(utc) < datetime.now(utc):
-                  reminder_time = self.user_list[sch[1]]['time']
-                  if datetime.now().astimezone(utc).hour >= reminder_time:
-                      user = self.get_user(self.user_list[sch[1]]['id'])
-                      message, image = reminder_message(sch[2])
-                      await user.send(message)
-                      await self.get_channel(1338945636107550774).send(f'Reminder sent to {user.mention} for puzzle {sch[2]}.')
-                      # remove pending flag
-                      self.schedule[i][3] = f'sent at {datetime.now(utc).isoformat()}'
-                      self.save_schedule()
+        for i in range(len(self.schedule)):
+            sch = self.schedule[i]
+            if sch[3] != 'pending':
+                continue
+            if datetime.fromisoformat(sch[0]).astimezone(utc) < datetime.now(utc):
+                reminder_time = self.user_list[sch[1]]['time']
+                if datetime.now().astimezone(utc).hour >= reminder_time:
+                    user = self.get_user(self.user_list[sch[1]]['id'])
+                    message, image = reminder_message(sch[2])
+                    await user.send(message)
+                    await self.get_channel(1338945636107550774).send(f'Reminder sent to {user.mention} for puzzle {sch[2]}.')
+                    # remove pending flag
+                    self.schedule[i][3] = f'sent at {datetime.now(utc).isoformat()}'
+                    self.save_schedule()
 
 client = Bot(intents=intents)
 
