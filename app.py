@@ -94,6 +94,10 @@ class Bot(discord.Client):
         if message.author == client.user:
             return
 
+        if message.author.global_name not in self.user_list:
+            await message.channel.send('User not in user list, can\'t send any commands.\\nRequest user in list to add your name in the schedule to be added to user list.')
+            return
+
         if message.channel.type == discord.ChannelType.private:
             if message.content.startswith('$time'):
                  try:
