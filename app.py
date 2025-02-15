@@ -43,7 +43,7 @@ def get_image_and_rules(url):
 
     # Screenshot the puzzle image
     image_binary = driver.find_element(By.ID, 'svgrenderer').screenshot_as_png
-    img = Image.open(io.BytesIO(image_binary))
+    img = io.BytesIO(image_binary)
 
     # Get the rest of the data from the page
     title = driver.find_element(By.CLASS_NAME, 'puzzle-title').text
@@ -59,6 +59,7 @@ def reminder_message(url):
         title, author, rules, img = get_image_and_rules(url)
     except:
         pass
+    print(title, author)
     return f"Reminder to post Snackdoku today.\n**{title}** {author}\n\n**Rules:**\n{rules}\n\nLink: {url}", img
 
 class Bot(discord.Client):
@@ -173,7 +174,7 @@ class Bot(discord.Client):
                 if datetime.now().astimezone(utc).hour >= reminder_time:
                     user = self.get_user(self.user_list[sch[1]]['id'])
                     message, image = reminder_message(sch[2])
-                    await user.send(message)
+                    await user.send(message, file=discord.File(fp=image, filename='screenshot.png'))
                     await self.get_channel(1338945636107550774).send(f'Reminder sent to {user.mention} for puzzle {sch[2]}.')
                     # remove pending flag
                     self.schedule[i][3] = f'sent at {datetime.now(utc).isoformat()}'
