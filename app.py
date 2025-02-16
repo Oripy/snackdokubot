@@ -59,8 +59,10 @@ def reminder_message(url):
         title, author, rules, img = get_image_and_rules(url)
     except:
         pass
-    print(title, author)
-    return f"Reminder to post Snackdoku today.\n**{title}** {author}\n\n**Rules:**\n{rules}\n\nLink: {url}", img
+    if title:
+        return f"**{title}** {author}\n\n**Rules:**\n{rules}\n\nLink: {url}", img
+    else:
+        return f"Link: {url}\n\n_Bot could not retreive more info... sorry_", img
 
 class Bot(discord.Client):
     def __init__(self, *args, **kwargs):
@@ -92,6 +94,12 @@ class Bot(discord.Client):
 
     async def on_message(self, message):
         if message.author == client.user:
+            return
+
+        if message.content.startswith('$get_info'):
+            url = message.content.split()[1]
+            if message.content.split()[1]:
+                await self.send_puzzle(url, message.channel)
             return
 
         if message.author.global_name not in self.user_list:
@@ -167,6 +175,13 @@ class Bot(discord.Client):
                         self.save_schedule()
                         break
 
+    async def send_puzzle(self, url, channel):
+        message, image = reminder_message(url)
+        if image:
+            await channel.send(message, file=discord.File(fp=image, filename='screenshot.png'))
+        else:
+            await channel.send(message)
+    
     @tasks.loop(minutes=5)
     async def background_task(self):
         for i in range(len(self.schedule)):
@@ -177,8 +192,8 @@ class Bot(discord.Client):
                 reminder_time = self.user_list[sch[1]]['time']
                 if datetime.now().astimezone(utc).hour >= reminder_time:
                     user = self.get_user(self.user_list[sch[1]]['id'])
-                    message, image = reminder_message(sch[2])
-                    await user.send(message, file=discord.File(fp=image, filename='screenshot.png'))
+                    await user.send(f"Reminder to post Snackdoku today.")
+                    await self.send_puzzle(sch[2], user)
                     await self.get_channel(1338945636107550774).send(f'Reminder sent to {user.mention} for puzzle {sch[2]}.')
                     # remove pending flag
                     self.schedule[i][3] = f'sent at {datetime.now(utc).isoformat()}'
