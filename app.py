@@ -102,7 +102,7 @@ class Bot(discord.Client):
                 await self.send_puzzle(url, message.channel)
             return
 
-        if message.author.global_name not in self.user_list:
+        if message.content.startswith('$') and message.author.global_name not in self.user_list:
             await message.channel.send('User not in user list, can\'t send any commands.\\nRequest user in list to add your name in the schedule to be added to user list.')
             return
 
@@ -194,7 +194,7 @@ class Bot(discord.Client):
                     user = self.get_user(self.user_list[sch[1]]['id'])
                     await user.send(f"Reminder to post Snackdoku today.")
                     await self.send_puzzle(sch[2], user)
-                    await self.get_channel(1338945636107550774).send(f'Reminder sent to {user.mention} for puzzle {sch[2]}.')
+                    await self.get_channel(1127170273867730974).send(f'Reminder sent to {user.mention} for puzzle {sch[2]}.')
                     # remove pending flag
                     self.schedule[i][3] = f'sent at {datetime.now(utc).isoformat()}'
                     self.save_schedule()
