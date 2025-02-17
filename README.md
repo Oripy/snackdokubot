@@ -5,7 +5,7 @@ The following commands are to be sent in DM to manage the reminders and ask to r
 **Scheduling**
 > $schedule
 
-will list the current planned schedule (ignoring past dates)
+will list the current planned schedule (ignoring past dates).
 
 > $schedule
 > 2025-02-14 username http://sudokupad.app/somepuzzleid
@@ -27,7 +27,7 @@ will define the reminder time as being around 14:00 UTC for the user sending the
 **Skipping reminder**
 > $skip
 
-will skip todays reminder.
+will skip today's reminder.
 This is useful when the post has already been posted and don't want the reminder to trigger anymore.
 
 **Asking for puzzle info**
