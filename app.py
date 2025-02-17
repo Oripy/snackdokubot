@@ -132,7 +132,7 @@ class Bot(discord.Client):
                     status = 'pending'
                     try:
                         date = datetime.fromisoformat(values[0])
-                        if date.date() < (datetime.now().date() - timedelta(days=1)):
+                        if date.date() <= (datetime.now().date() - timedelta(days=1)):
                             status = 'past'
                     except ValueError:
                         await message.channel.send(f'Invalid date for line: **{line}**')
