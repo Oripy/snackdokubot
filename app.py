@@ -120,6 +120,9 @@ class Bot(discord.Client):
                     await message.channel.send(f'The reminders will be sent around {new_time} GMT or <t:{new_time*3600}:t> your time.')
                 except ValueError:
                     await message.channel.send(f'Invalid time!\nExample usage: type **$time 13** to receive a reminder around 13:00 GMT / <t:46800:t> your time.\nNote that the target is to post around 13:00 GMT / <t:46800:t> your time.')
+                except IndexError:
+                    cur_time = self.user_list[message.author.global_name]['time']
+                    await message.channel.send(f'The reminders will be sent around {cur_time} GMT or <t:{cur_time*3600}:t> your time.')
                 return
 
             if message.content.startswith('$schedule'):
