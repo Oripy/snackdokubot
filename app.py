@@ -8,8 +8,14 @@ intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True
 
+import configparser
+
+config = configparser.ConfigParser()
+config.read('config.ini')
+
 schedule_file = "schedule.json"
 users_pref_file = "prefs.json"
+description_file = "description.md"
 
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -25,7 +31,7 @@ def get_image_and_rules(url):
     options = Options()
     options.add_argument("--headless=new")
 
-    service = Service('/usr/lib/chromium-browser/chromedriver')
+    service = Service(config['DEFAULT']['CHROME_PATH'])
 
     driver = webdriver.Chrome(options=options, service=service)
     driver.get(url)
@@ -182,38 +188,8 @@ class Bot(discord.Client):
                         self.save_schedule()
                         break
                 return
-
-            await message.channel.send("""Hello!
-I'm a bot to help Snackdoku posters to post in time. I can also help to write the post as I can gather info from puzzle links.
-
-Send me the following commands in DM to manage the reminders and ask me for some help:
-
-**Scheduling**
-> $schedule
-will list the current planned schedule (ignoring past dates)
-
-> $schedule
-> 2025-02-14 username http://sudokupad.app/somepuzzleid
-will add/alter the reminder for 14th of February 2025. A message will be sent to _username_ on that date with the link and info.
-
-> $schedule
-> 2025-02-14 delete
-will remove the scheduled line for that date
-
-several lines can be added/modified/deleted on the same message
-
-**User defined reminder time preference**
-> $time 14
-will define the reminder time as being around 14:00 UTC for the user sending the command. Other users reminder time is not affected.
-
-**Skipping reminder**
-> $skip
-will skip todays reminder.
-This is useful when the post has already been posted and don't want the reminder to trigger anymore.
-
-**Asking for puzzle info**
-> $getinfo http://sudokupad.app/somepuzzleid
-will send a message with formatted info on the puzzle (Title, Author, Rules) as well as a screenshot of the puzzle.""")
+            with open(description_file, "r") as f:
+                await message.channel.send(f.read())
 
     async def send_puzzle(self, url, channel):
         message, image = puzzle_desc(url)
@@ -229,7 +205,7 @@ will send a message with formatted info on the puzzle (Title, Author, Rules) as 
             await channel.send(message, file=discord.File(fp=image, filename='screenshot.png'))
         else:
             await channel.send(message)
-    
+
     @tasks.loop(minutes=5)
     async def background_task(self):
         for i in range(len(self.schedule)):
@@ -242,16 +218,11 @@ will send a message with formatted info on the puzzle (Title, Author, Rules) as 
                     user = self.get_user(self.user_list[sch[1]]['id'])
                     await user.send(f"Reminder to post Snackdoku today.")
                     await self.send_reminder(sch[2], user)
-                    await self.get_channel(1127170273867730974).send(f'Reminder sent to {user.mention} for puzzle {sch[2]}.')
+                    await self.get_channel(config['DEFAULT']['CHANNEL_ID']).send(f'Reminder sent to {user.mention} for puzzle {sch[2]}.')
                     # remove pending flag
                     self.schedule[i][3] = f'sent at {datetime.now(utc).isoformat()}'
                     self.save_schedule()
 
 client = Bot(intents=intents)
-
-import configparser
-
-config = configparser.ConfigParser()
-config.read('config.ini')
 
 client.run(config['DEFAULT']['DISCORD_TOKEN'])
