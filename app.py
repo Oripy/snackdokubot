@@ -167,7 +167,7 @@ class Bot(discord.Client):
                             self.schedule.append([date.isoformat(), member.global_name, url, status])
                     self.schedule.sort(key=lambda sch: sch[0])
                     self.save_schedule()
-                cur_schedule = list(filter(lambda sch: (datetime.fromisoformat(sch[0]) - timedelta(days=1)) > datetime.now(), self.schedule))
+                cur_schedule = list(filter(lambda sch: datetime.fromisoformat(sch[0]).date() >= datetime.now().date(), self.schedule))
                 if len(cur_schedule) == 0:
                     await message.channel.send(f'_The schedule is currently empty_')
                 for sch in cur_schedule:
