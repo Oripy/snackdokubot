@@ -142,7 +142,7 @@ class Bot(discord.Client):
                         for i in range(len(self.schedule)):
                             if datetime.fromisoformat(self.schedule[i][0]) == date:
                                 self.schedule.pop(i)
-                                await message.channel.send(f'schedule line for {date} has been removed')
+                                await message.channel.send(f'schedule line for {date.date()} has been removed')
                                 break
                     else:
                         for guild in self.guilds:
