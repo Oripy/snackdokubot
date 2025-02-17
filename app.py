@@ -96,7 +96,7 @@ class Bot(discord.Client):
         if message.author == client.user:
             return
 
-        if message.content.startswith('$get_info'):
+        if message.content.startswith('$getinfo'):
             url = message.content.split()[1]
             if message.content.split()[1]:
                 await self.send_puzzle(url, message.channel)
@@ -108,18 +108,19 @@ class Bot(discord.Client):
 
         if message.channel.type == discord.ChannelType.private:
             if message.content.startswith('$time'):
-                 try:
-                      new_time = int(message.content.split()[1])
-                      if new_time < 0 or new_time > 23:
-                          raise ValueError('Out of range')
-                      if message.author.global_name in self.user_list:
-                          self.user_list[message.author.global_name]['time'] = new_time
-                      else:
-                          self.user_list[message.author.global_name] = {'id': message.author.id, 'time': new_time}
-                      self.save_users()
-                      await message.channel.send(f'The reminders will be sent around {new_time} GMT or <t:{new_time*3600}:t> your time.')
-                 except ValueError:
-                      await message.channel.send(f'Invalid time!\nExample usage: type **$time 13** to receive a reminder around 13:00 GMT / <t:46800:t> your time.\nNote that the target is to post around 13:00 GMT / <t:46800:t> your time.')
+                try:
+                    new_time = int(message.content.split()[1])
+                    if new_time < 0 or new_time > 23:
+                        raise ValueError('Out of range')
+                    if message.author.global_name in self.user_list:
+                        self.user_list[message.author.global_name]['time'] = new_time
+                    else:
+                        self.user_list[message.author.global_name] = {'id': message.author.id, 'time': new_time}
+                    self.save_users()
+                    await message.channel.send(f'The reminders will be sent around {new_time} GMT or <t:{new_time*3600}:t> your time.')
+                except ValueError:
+                    await message.channel.send(f'Invalid time!\nExample usage: type **$time 13** to receive a reminder around 13:00 GMT / <t:46800:t> your time.\nNote that the target is to post around 13:00 GMT / <t:46800:t> your time.')
+                return
 
             if message.content.startswith('$schedule'):
                 text = message.content.split("\n")
@@ -166,6 +167,7 @@ class Bot(discord.Client):
                 for sch in self.schedule:
                     if (datetime.fromisoformat(sch[0]) + timedelta(days=1)) > datetime.now():
                         await message.channel.send(f'{datetime.fromisoformat(sch[0]).date().isoformat()}: {sch[1]} {sch[2]} {sch[3]}')
+                return
 
             if message.content.startswith('$skip'):
                 for i in range(len(self.schedule)):
@@ -174,6 +176,39 @@ class Bot(discord.Client):
                         await message.channel.send(f'schedule line for {date} has been skipped')
                         self.save_schedule()
                         break
+                return
+
+            await message.channel.send("""Hello!
+I'm a bot to help Snackdoku posters to post in time. I can also help to write the post as I can gather info from puzzle links.
+
+Send me the following commands in DM to manage the reminders and ask me for some help:
+
+**Scheduling**
+> $schedule
+will list the current planned schedule (ignoring past dates)
+
+> $schedule
+> 2025-02-14 username http://sudokupad.app/somepuzzleid
+will add/alter the reminder for 14th of February 2025. A message will be sent to _username_ on that date with the link and info.
+
+> $schedule
+> 2025-02-14 delete
+will remove the scheduled line for that date
+
+several lines can be added/modified/deleted on the same message
+
+**User defined reminder time preference**
+> $time 14
+will define the reminder time as being around 14:00 UTC for the user sending the command. Other users reminder time is not affected.
+
+**Skipping reminder**
+> $skip
+will skip todays reminder.
+This is useful when the post has already been posted and don't want the reminder to trigger anymore.
+
+**Asking for puzzle info**
+> $getinfo http://sudokupad.app/somepuzzleid
+will send a message with formatted info on the puzzle (Title, Author, Rules) as well as a screenshot of the puzzle.""")
 
     async def send_puzzle(self, url, channel):
         message, image = reminder_message(url)
