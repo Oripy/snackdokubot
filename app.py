@@ -53,14 +53,14 @@ def get_image_and_rules(url):
     driver.close()
     return title, author, rules, img
 
-def reminder_message(url):
+def puzzle_desc(url):
     title, author, rules, img = None, None, None, None
     try:
         title, author, rules, img = get_image_and_rules(url)
     except:
         pass
     if title:
-        return f"**{title}** {author}\n\n**Rules:**\n{rules}\n\nLink: {url}", img
+        return f"**{title}** {author}\n\n**Rules:**\n{rules}\n\nSudokuPad: {url}", img
     else:
         return f"Link: {url}\n\n_Bot could not retreive more info... sorry_", img
 
@@ -103,7 +103,7 @@ class Bot(discord.Client):
             return
 
         if message.content.startswith('$') and message.author.global_name not in self.user_list:
-            await message.channel.send('User not in user list, can\'t send any commands.\\nRequest user in list to add your name in the schedule to be added to user list.')
+            await message.channel.send('User not in user list, can\'t send any commands.\nRequest user in list to add your name in the schedule to be added to user list.')
             return
 
         if message.channel.type == discord.ChannelType.private:
@@ -216,7 +216,15 @@ This is useful when the post has already been posted and don't want the reminder
 will send a message with formatted info on the puzzle (Title, Author, Rules) as well as a screenshot of the puzzle.""")
 
     async def send_puzzle(self, url, channel):
-        message, image = reminder_message(url)
+        message, image = puzzle_desc(url)
+        if image:
+            await channel.send(message, file=discord.File(fp=image, filename='screenshot.png'))
+        else:
+            await channel.send(message)
+
+    async def send_reminder(self, url, channel):
+        message, image = puzzle_desc(url)
+        message = f"Target Times: 🦨  ≤ 2min < 🐿️  ≤ 5min <  🦔 so, please enjoy…\n\n{message}\n\n@Guest Series Solver - 1\n[new snackdoku]"
         if image:
             await channel.send(message, file=discord.File(fp=image, filename='screenshot.png'))
         else:
@@ -233,7 +241,7 @@ will send a message with formatted info on the puzzle (Title, Author, Rules) as 
                 if datetime.now().astimezone(utc).hour >= reminder_time:
                     user = self.get_user(self.user_list[sch[1]]['id'])
                     await user.send(f"Reminder to post Snackdoku today.")
-                    await self.send_puzzle(sch[2], user)
+                    await self.send_reminder(sch[2], user)
                     await self.get_channel(1127170273867730974).send(f'Reminder sent to {user.mention} for puzzle {sch[2]}.')
                     # remove pending flag
                     self.schedule[i][3] = f'sent at {datetime.now(utc).isoformat()}'
