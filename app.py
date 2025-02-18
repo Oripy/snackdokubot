@@ -1,12 +1,17 @@
 from datetime import datetime, timedelta
+import re
 from pytz import utc
 import discord
 from discord.ext import tasks, commands
 import json
 
+import sheet_tools
+
 intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True
+
+urls = re.compile(r'http[s]*\S+')
 
 import configparser
 
@@ -94,12 +99,46 @@ class Bot(discord.Client):
         with open(schedule_file, 'w') as f:
             json.dump(self.schedule, f)
 
+    def edit_sheet(self, message):
+        # data = sheet_tools.get_line(message.id)
+        message_urls = urls.findall(message.content)
+        edit_url = None
+        solve_url = None
+        title, author, rules, img = None, None, None, None
+        for u in message_urls:
+            try:
+                title, author, rules, img = get_image_and_rules(u)
+                if title:
+                    solve_url = u
+                    break
+            except:
+                pass
+        if solve_url:
+            for u in message_urls:
+                if u != solve_url:
+                    edit_url = u
+                    break
+        print([r.emoji for r in message.reactions])
+        sheet_tools.edit_line(int(message.id), title, author, edit_url, solve_url, 0,0,0)
+
     async def on_ready(self):
         self.background_task.start()
         print(f'We have logged in as {client.user}')
 
+    async def on_message_edit(self, before, message):
+        if message.author == client.user:
+            return
+
+        if message.channel.id == int(config['DEFAULT']['SUBMIT_CHANNEL_ID']):
+            self.edit_sheet(message)
+            return
+
     async def on_message(self, message):
         if message.author == client.user:
+            return
+
+        if message.channel.id == int(config['DEFAULT']['SUBMIT_CHANNEL_ID']):
+            self.edit_sheet(message)
             return
 
         if message.content.startswith('$getinfo'):
