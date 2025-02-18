@@ -7,12 +7,12 @@ The following commands are to be sent in DM to manage the reminders and ask to r
 
 will list the current planned schedule (ignoring past dates).
 
-> $schedule
+> $schedule    
 > 2025-02-14 username http://sudokupad.app/somepuzzleid
 
 will add/alter the reminder for 14th of February 2025. A message will be sent to _username_ on that date with the link and info.
 
-> $schedule
+> $schedule    
 > 2025-02-14 delete
 
 will remove the scheduled line for that date
