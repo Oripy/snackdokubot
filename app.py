@@ -9,6 +9,7 @@ import sheet_tools
 
 intents = discord.Intents.default()
 intents.message_content = True
+intents.reactions = True
 intents.members = True
 
 urls = re.compile(r'http[s]*\S+')
@@ -35,6 +36,7 @@ from PIL import Image
 def get_image_and_rules(url):
     options = Options()
     options.add_argument("--headless=new")
+    options.add_experimental_option("detach", True)
 
     service = Service(config['DEFAULT']['CHROME_PATH'])
 
@@ -58,7 +60,7 @@ def get_image_and_rules(url):
 
     # Get the rest of the data from the page
     title = driver.find_element(By.CLASS_NAME, 'puzzle-title').text
-    author = driver.find_element(By.CLASS_NAME, 'puzzle-author').text
+    author = driver.find_element(By.CLASS_NAME, 'puzzle-author').text[4:] # Remove " by " at the begining of the Author name
     rules = driver.find_element(By.CLASS_NAME, 'puzzle-rules').text
 
     driver.close()
@@ -71,7 +73,7 @@ def puzzle_desc(url):
     except:
         pass
     if title:
-        return f"**{title}** {author}\n\n**Rules:**\n{rules}\n\nSudokuPad: {url}", img
+        return f"**{title}** by **{author}**\n\n**Rules:**\n{rules}\n\nSudokuPad: {url}", img
     else:
         return f"Link: {url}\n\n_Bot could not retreive more info... sorry_", img
 
@@ -99,38 +101,83 @@ class Bot(discord.Client):
         with open(schedule_file, 'w') as f:
             json.dump(self.schedule, f)
 
-    def edit_sheet(self, message):
-        # data = sheet_tools.get_line(message.id)
-        message_urls = urls.findall(message.content)
+    def edit_sheet(self, message, before=None):
+        message_urls = list(set(urls.findall(message.content)))
+        skip_analysis = False
+
+        if before and len(message_urls) > 0:
+            before_urls = list(set(urls.findall(message.content)))
+            if before_urls == message_urls:
+                skip_analysis = True
+
+        data = sheet_tools.get_line(message.id)
+        if data and len(message_urls) > 0:
+            if data[2] == message_urls[0] or data[3] == message_urls[0]:
+                if len(message_urls) > 1:
+                    if data[2] == message_urls[0] or data[3] == message_urls[0]:
+                        skip_analysis = True
+                else:
+                    skip_analysis = True
         edit_url = None
         solve_url = None
-        title, author, rules, img = None, None, None, None
-        for u in message_urls:
-            try:
-                title, author, rules, img = get_image_and_rules(u)
-                if title:
-                    solve_url = u
-                    break
-            except:
-                pass
-        if solve_url:
+        if skip_analysis:
+            title, author = data[0], data[1]
+            edit_url = data[2]
+            solve_url = data[3]
+        else:
+            title, author = None, None
             for u in message_urls:
-                if u != solve_url:
-                    edit_url = u
-                    break
-        print([r.emoji for r in message.reactions])
-        sheet_tools.edit_line(int(message.id), title, author, edit_url, solve_url, 0,0,0)
+                try:
+                    title, author, _, _ = get_image_and_rules(u)
+                    if title:
+                        solve_url = u
+                        break
+                except:
+                    pass
+            if solve_url:
+                for u in message_urls:
+                    if u != solve_url:
+                        edit_url = u
+                        break
+            else:
+                if len(message_urls) > 0:
+                    solve_url = message_urls[0]
+                if len(message_urls) > 1:
+                    edit_url = message_urls[1]
+        reactions = {r.emoji: r.count for r in message.reactions}
+        print(reactions)
+        sheet_tools.edit_line(int(message.id), title, author, edit_url, solve_url, reactions)
 
     async def on_ready(self):
         self.background_task.start()
         print(f'We have logged in as {client.user}')
 
-    async def on_message_edit(self, before, message):
-        if message.author == client.user:
+    async def on_raw_reaction_add(self, payload):
+        message_id = payload.message_id
+        channel_id = payload.channel_id
+        guild_id = payload.guild_id
+        message = await self.get_guild(guild_id).get_channel(channel_id).fetch_message(message_id)
+        if message.channel.id == int(config['DEFAULT']['SUBMIT_CHANNEL_ID']):
+            self.edit_sheet(message, None)
             return
 
+    async def on_raw_reaction_remove(self, payload):
+        message_id = payload.message_id
+        channel_id = payload.channel_id
+        guild_id = payload.guild_id
+        message = await self.get_guild(guild_id).get_channel(channel_id).fetch_message(message_id)
         if message.channel.id == int(config['DEFAULT']['SUBMIT_CHANNEL_ID']):
-            self.edit_sheet(message)
+            self.edit_sheet(message, None)
+            return
+
+    async def on_raw_message_edit(self, payload):
+        message_id = payload.message_id
+        channel_id = payload.channel_id
+        guild_id = payload.guild_id
+        message = await self.get_guild(guild_id).get_channel(channel_id).fetch_message(message_id)
+        
+        if message.channel.id == int(config['DEFAULT']['SUBMIT_CHANNEL_ID']):
+            self.edit_sheet(message, None)
             return
 
     async def on_message(self, message):
@@ -138,7 +185,7 @@ class Bot(discord.Client):
             return
 
         if message.channel.id == int(config['DEFAULT']['SUBMIT_CHANNEL_ID']):
-            self.edit_sheet(message)
+            self.edit_sheet(message, None)
             return
 
         if message.content.startswith('$getinfo'):
