@@ -44,7 +44,6 @@ from selenium.webdriver.common.by import By
 import io
 from PIL import Image
 
-@to_thread
 def get_image_and_rules(url):
     options = Options()
     options.add_argument("--headless=new")
@@ -81,7 +80,7 @@ def get_image_and_rules(url):
 def puzzle_desc(url):
     title = author = rules = img = None
     try:
-        title, author, rules, img = await get_image_and_rules(url)
+        title, author, rules, img = get_image_and_rules(url)
     except:
         pass
     if title:
