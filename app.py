@@ -125,7 +125,7 @@ class Bot(discord.Client):
 
         data = sheet_tools.get_line(message.id)
         if data:
-            if set([data[3], data[4]]) == set(message_urls):
+            if set([m for m in [data[3], data[4]] if m != ""]) == set(message_urls):
                 skip_analysis = True
 
         if skip_analysis:
