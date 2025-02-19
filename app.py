@@ -205,10 +205,12 @@ class Bot(discord.Client):
                     limit = 50
                 channel = None
                 for guild in self.guilds:
-                    channel = guild.get_channel(config['DEFAULT']['SUBMIT_CHANNEL_ID'])
-                if channel:
-                    async for message in channel.history(limit=limit):
-                        self.edit_sheet(message, None)
+                    channel = guild.get_channel(int(config['DEFAULT']['SUBMIT_CHANNEL_ID']))
+                    if channel:
+                        messages = [m async for m in channel.history(limit=limit)]
+                        for m in messages:
+                            self.edit_sheet(m, None)
+                        break
                 return
 
             if message.content.startswith('$time'):
