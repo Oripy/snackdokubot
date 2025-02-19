@@ -1,12 +1,18 @@
 from datetime import datetime, timedelta
+import re
 from pytz import utc
 import discord
 from discord.ext import tasks, commands
 import json
 
+import sheet_tools
+
 intents = discord.Intents.default()
 intents.message_content = True
+intents.reactions = True
 intents.members = True
+
+urls = re.compile(r'http[s]*\S+')
 
 import configparser
 
@@ -16,6 +22,9 @@ config.read('config.ini')
 schedule_file = "schedule.json"
 users_pref_file = "prefs.json"
 description_file = "description.md"
+tracked_reactions = ['<:grn:951196965616644156>',
+                     '<:yello:951196965708914769>',
+                     '<:red:951196965713117224>']
 
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -30,6 +39,7 @@ from PIL import Image
 def get_image_and_rules(url):
     options = Options()
     options.add_argument("--headless=new")
+    options.add_experimental_option("detach", True)
 
     service = Service(config['DEFAULT']['CHROME_PATH'])
 
@@ -53,20 +63,20 @@ def get_image_and_rules(url):
 
     # Get the rest of the data from the page
     title = driver.find_element(By.CLASS_NAME, 'puzzle-title').text
-    author = driver.find_element(By.CLASS_NAME, 'puzzle-author').text
+    author = driver.find_element(By.CLASS_NAME, 'puzzle-author').text[4:] # Remove " by " at the begining of the Author name
     rules = driver.find_element(By.CLASS_NAME, 'puzzle-rules').text
 
     driver.close()
     return title, author, rules, img
 
 def puzzle_desc(url):
-    title, author, rules, img = None, None, None, None
+    title = author = rules = img = None
     try:
         title, author, rules, img = get_image_and_rules(url)
     except:
         pass
     if title:
-        return f"**{title}** {author}\n\n**Rules:**\n{rules}\n\nSudokuPad: {url}", img
+        return f"**{title}** by **{author}**\n\n**Rules:**\n{rules}\n\nSudokuPad: {url}", img
     else:
         return f"Link: {url}\n\n_Bot could not retreive more info... sorry_", img
 
@@ -94,12 +104,87 @@ class Bot(discord.Client):
         with open(schedule_file, 'w') as f:
             json.dump(self.schedule, f)
 
+    def edit_sheet(self, message, before=None):
+        message_urls = list(set(urls.findall(message.content)))
+        skip_analysis = False
+
+        if before and len(message_urls) > 0:
+            before_urls = list(set(urls.findall(message.content)))
+            if before_urls == message_urls:
+                skip_analysis = True
+
+        data = sheet_tools.get_line(message.id)
+        if data:
+            if set([data[2], data[3]]) == set(message_urls):
+                skip_analysis = True
+
+        if skip_analysis:
+            [title, author, edit_url, solve_url] = data[:4]
+        else:
+            [title, author, edit_url, solve_url] = [None]*4
+            for u in message_urls:
+                try:
+                    title, author, _, _ = get_image_and_rules(u)
+                    if title:
+                        solve_url = u
+                        break
+                except:
+                    pass
+            if solve_url:
+                for u in message_urls:
+                    if u != solve_url:
+                        edit_url = u
+                        break
+            else:
+                if len(message_urls) > 0:
+                    solve_url = message_urls[0]
+                if len(message_urls) > 1:
+                    edit_url = message_urls[1]
+        reactions = {str(r.emoji): r.count for r in message.reactions}
+        for emoji in tracked_reactions:
+            if emoji not in reactions:
+                reactions[emoji] = 0
+        emojis = [reactions[e] for e in tracked_reactions]
+        sheet_tools.edit_line(int(message.id), title, author, edit_url, solve_url, *emojis)
+
     async def on_ready(self):
         self.background_task.start()
         print(f'We have logged in as {client.user}')
 
+    async def on_raw_reaction_add(self, payload):
+        message_id = payload.message_id
+        channel_id = payload.channel_id
+        guild_id = payload.guild_id
+        message = await self.get_guild(guild_id).get_channel(channel_id).fetch_message(message_id)
+        if message.channel.id == int(config['DEFAULT']['SUBMIT_CHANNEL_ID']):
+            self.edit_sheet(message, None)
+            return
+
+    async def on_raw_reaction_remove(self, payload):
+        message_id = payload.message_id
+        channel_id = payload.channel_id
+        guild_id = payload.guild_id
+        message = await self.get_guild(guild_id).get_channel(channel_id).fetch_message(message_id)
+        if message.channel.id == int(config['DEFAULT']['SUBMIT_CHANNEL_ID']):
+            self.edit_sheet(message, None)
+            return
+
+    async def on_raw_message_edit(self, payload):
+        message_id = payload.message_id
+        channel_id = payload.channel_id
+        guild_id = payload.guild_id
+        message = await self.get_guild(guild_id).get_channel(channel_id).fetch_message(message_id)
+
+        if message.channel.id == int(config['DEFAULT']['SUBMIT_CHANNEL_ID']):
+            self.edit_sheet(message, None)
+            return
+
     async def on_message(self, message):
         if message.author == client.user:
+            return
+
+        if message.channel.id == int(config['DEFAULT']['SUBMIT_CHANNEL_ID']):
+            self.edit_sheet(message, None)
             return
 
         if message.content.startswith('$getinfo'):
