@@ -28,6 +28,13 @@ tracked_reactions = ['<:grn:951196965616644156>',
                      '<:yello:951196965708914769>',
                      '<:red:951196965713117224>']
 
+fifo_queue = asyncio.Queue()
+async def fifo_worker():
+    while True:
+        job = await fifo_queue.get()
+        print(f"Got a job: (size of remaining queue: {fifo_queue.qsize()})")
+        await job()
+
 def to_thread(func):
     @functools.wraps(func)
     async def wrapper(*args, **kwargs):
@@ -102,6 +109,7 @@ class Bot(discord.Client):
         except FileNotFoundError:
             self.schedule = []
             self.save_schedule()
+
         super().__init__(*args, **kwargs)
 
     def save_users(self):
@@ -158,6 +166,7 @@ class Bot(discord.Client):
         sheet_tools.edit_line(int(message.id), message_date, title, author, edit_url, solve_url, *emojis)
 
     async def on_ready(self):
+        asyncio.create_task(fifo_worker())
         self.background_task.start()
         print(f'We have logged in as {client.user}')
 
@@ -171,7 +180,7 @@ class Bot(discord.Client):
                 return
             message = await channel.fetch_message(payload.message_id)
             if message:
-                await self.edit_sheet(message, None)
+                await fifo_queue.put(lambda m=message: self.edit_sheet(m, None))
             return
 
     async def on_raw_reaction_add(self, payload):
@@ -188,7 +197,7 @@ class Bot(discord.Client):
             return
 
         if message.channel.id == int(config['DEFAULT']['SUBMIT_CHANNEL_ID']):
-            await self.edit_sheet(message, None)
+            await fifo_queue.put(lambda m=message: self.edit_sheet(m, None))
             return
 
         if message.content.startswith('$getinfo'):
@@ -213,7 +222,7 @@ class Bot(discord.Client):
                     if channel:
                         messages = [m async for m in channel.history(limit=limit)]
                         for m in messages:
-                            await self.edit_sheet(m, None)
+                            await fifo_queue.put(lambda m=m: self.edit_sheet(m, None))
                         break
                 return
 
