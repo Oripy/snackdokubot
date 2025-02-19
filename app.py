@@ -4,7 +4,6 @@ from pytz import utc
 import discord
 from discord.ext import tasks, commands
 import json
-import lxml.html
 
 import sheet_tools
 
@@ -14,6 +13,7 @@ intents.reactions = True
 intents.members = True
 
 urls = re.compile(r'http[s]*\S+')
+emoji = re.compile(r"name='(.*)'")
 
 import configparser
 
@@ -69,11 +69,11 @@ def get_image_and_rules(url):
     return title, author, rules, img
 
 def get_emoji(data):
-    emote = lxml.html.fromstring(data).get('name')
-    if emote:
-        return emote
-    else:
-        return data
+    try:
+        emote = emoji.search(data).group(1)
+    except AttributeError:
+        emote = data
+    return emote
 
 def puzzle_desc(url):
     title = author = rules = img = None
