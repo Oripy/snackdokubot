@@ -161,33 +161,27 @@ class Bot(discord.Client):
         self.background_task.start()
         print(f'We have logged in as {client.user}')
 
-    async def on_raw_reaction_add(self, payload):
-        message_id = payload.message_id
-        channel_id = payload.channel_id
-        guild_id = payload.guild_id
-        message = await self.get_guild(guild_id).get_channel(channel_id).fetch_message(message_id)
-        if message.channel.id == int(config['DEFAULT']['SUBMIT_CHANNEL_ID']):
-            await self.edit_sheet(message, None)
+    async def update_sheet(self, payload):
+        if payload.channel_id == int(config['DEFAULT']['SUBMIT_CHANNEL_ID']):
+            guild = await self.get_guild(payload.guild_id)
+            if not guild:
+                return
+            channel = await guild.get_channel(payload.channel_id)
+            if not channel:
+                return
+            message = await self.get_guild(guild_id).get_channel(channel_id).fetch_message(payload.message_id)
+            if message:
+                await self.edit_sheet(message, None)
             return
+
+    async def on_raw_reaction_add(self, payload):
+        await self.update_sheet(payload)
 
     async def on_raw_reaction_remove(self, payload):
-        message_id = payload.message_id
-        channel_id = payload.channel_id
-        guild_id = payload.guild_id
-        message = await self.get_guild(guild_id).get_channel(channel_id).fetch_message(message_id)
-        if message.channel.id == int(config['DEFAULT']['SUBMIT_CHANNEL_ID']):
-            await self.edit_sheet(message, None)
-            return
+        await self.update_sheet(payload)
 
     async def on_raw_message_edit(self, payload):
-        message_id = payload.message_id
-        channel_id = payload.channel_id
-        guild_id = payload.guild_id
-        message = await self.get_guild(guild_id).get_channel(channel_id).fetch_message(message_id)
-
-        if message.channel.id == int(config['DEFAULT']['SUBMIT_CHANNEL_ID']):
-            await self.edit_sheet(message, None)
-            return
+        await self.update_sheet(payload)
 
     async def on_message(self, message):
         if message.author == client.user:
