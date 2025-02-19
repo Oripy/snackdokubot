@@ -107,6 +107,7 @@ class Bot(discord.Client):
     def edit_sheet(self, message, before=None):
         message_urls = list(set(urls.findall(message.content)))
         skip_analysis = False
+        message_date = message.created_at.isoformat()
 
         if before and len(message_urls) > 0:
             before_urls = list(set(urls.findall(message.content)))
@@ -145,7 +146,7 @@ class Bot(discord.Client):
             if emoji not in reactions:
                 reactions[emoji] = 0
         emojis = [reactions[e] for e in tracked_reactions]
-        sheet_tools.edit_line(int(message.id), title, author, edit_url, solve_url, *emojis)
+        sheet_tools.edit_line(int(message.id), message_date, title, author, edit_url, solve_url, *emojis)
 
     async def on_ready(self):
         self.background_task.start()
