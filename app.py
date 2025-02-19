@@ -163,13 +163,13 @@ class Bot(discord.Client):
 
     async def update_sheet(self, payload):
         if payload.channel_id == int(config['DEFAULT']['SUBMIT_CHANNEL_ID']):
-            guild = await self.get_guild(payload.guild_id)
+            guild = self.get_guild(payload.guild_id)
             if not guild:
                 return
-            channel = await guild.get_channel(payload.channel_id)
+            channel = guild.get_channel(payload.channel_id)
             if not channel:
                 return
-            message = await self.get_guild(guild_id).get_channel(channel_id).fetch_message(payload.message_id)
+            message = await channel.fetch_message(payload.message_id)
             if message:
                 await self.edit_sheet(message, None)
             return
