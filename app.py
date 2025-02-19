@@ -13,7 +13,6 @@ intents.reactions = True
 intents.members = True
 
 urls = re.compile(r'http[s]*\S+')
-emoji = re.compile(r"name='(.*)'")
 
 import configparser
 
@@ -23,7 +22,9 @@ config.read('config.ini')
 schedule_file = "schedule.json"
 users_pref_file = "prefs.json"
 description_file = "description.md"
-tracked_reactions = ['grn', 'yello', 'red']
+tracked_reactions = ['<:grn:951196965616644156>',
+                     '<:yello:951196965708914769>',
+                     '<:red:951196965713117224>']
 
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -67,13 +68,6 @@ def get_image_and_rules(url):
 
     driver.close()
     return title, author, rules, img
-
-def get_emoji(data):
-    try:
-        emote = emoji.search(data).group(1)
-    except AttributeError:
-        emote = data
-    return emote
 
 def puzzle_desc(url):
     title = author = rules = img = None
@@ -120,8 +114,9 @@ class Bot(discord.Client):
                 skip_analysis = True
 
         data = sheet_tools.get_line(message.id)
-        if set([data[2], data[3]]) == set(message_urls):
-            skip_analysis = True
+        if data:
+            if set([data[2], data[3]]) == set(message_urls):
+                skip_analysis = True
 
         if skip_analysis:
             [title, author, edit_url, solve_url] = data[:4]
@@ -145,7 +140,7 @@ class Bot(discord.Client):
                     solve_url = message_urls[0]
                 if len(message_urls) > 1:
                     edit_url = message_urls[1]
-        reactions = {get_emoji(r.emoji): r.count for r in message.reactions}
+        reactions = {str(r.emoji): r.count for r in message.reactions}
         for emoji in tracked_reactions:
             if emoji not in reactions:
                 reactions[emoji] = 0
@@ -179,7 +174,7 @@ class Bot(discord.Client):
         channel_id = payload.channel_id
         guild_id = payload.guild_id
         message = await self.get_guild(guild_id).get_channel(channel_id).fetch_message(message_id)
-        
+
         if message.channel.id == int(config['DEFAULT']['SUBMIT_CHANNEL_ID']):
             self.edit_sheet(message, None)
             return
