@@ -125,11 +125,11 @@ class Bot(discord.Client):
 
         data = sheet_tools.get_line(message.id)
         if data:
-            if set([data[2], data[3]]) == set(message_urls):
+            if set([data[3], data[4]]) == set(message_urls):
                 skip_analysis = True
 
         if skip_analysis:
-            [title, author, edit_url, solve_url] = data[:4]
+            [title, author, edit_url, solve_url] = data[1:5]
         else:
             [title, author, edit_url, solve_url] = [None]*4
             for u in message_urls:
