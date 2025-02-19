@@ -4,6 +4,7 @@ from pytz import utc
 import discord
 from discord.ext import tasks, commands
 import json
+import lxml.html
 
 import sheet_tools
 
@@ -22,6 +23,7 @@ config.read('config.ini')
 schedule_file = "schedule.json"
 users_pref_file = "prefs.json"
 description_file = "description.md"
+tracked_reactions = ['grn', 'yello', 'red']
 
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -66,8 +68,15 @@ def get_image_and_rules(url):
     driver.close()
     return title, author, rules, img
 
+def get_emoji(data):
+    emote = lxml.html.fromstring(data).get('name')
+    if emote:
+        return emote
+    else:
+        return data
+
 def puzzle_desc(url):
-    title, author, rules, img = None, None, None, None
+    title = author = rules = img = None
     try:
         title, author, rules, img = get_image_and_rules(url)
     except:
@@ -111,21 +120,13 @@ class Bot(discord.Client):
                 skip_analysis = True
 
         data = sheet_tools.get_line(message.id)
-        if data and len(message_urls) > 0:
-            if data[2] == message_urls[0] or data[3] == message_urls[0]:
-                if len(message_urls) > 1:
-                    if data[2] == message_urls[0] or data[3] == message_urls[0]:
-                        skip_analysis = True
-                else:
-                    skip_analysis = True
-        edit_url = None
-        solve_url = None
+        if set([data[2], data[3]]) == set(message_urls):
+            skip_analysis = True
+
         if skip_analysis:
-            title, author = data[0], data[1]
-            edit_url = data[2]
-            solve_url = data[3]
+            [title, author, edit_url, solve_url] = data[:4]
         else:
-            title, author = None, None
+            [title, author, edit_url, solve_url] = [None]*4
             for u in message_urls:
                 try:
                     title, author, _, _ = get_image_and_rules(u)
@@ -144,9 +145,12 @@ class Bot(discord.Client):
                     solve_url = message_urls[0]
                 if len(message_urls) > 1:
                     edit_url = message_urls[1]
-        reactions = {r.emoji: r.count for r in message.reactions}
-        print(reactions)
-        sheet_tools.edit_line(int(message.id), title, author, edit_url, solve_url, reactions)
+        reactions = {get_emoji(r.emoji): r.count for r in message.reactions}
+        for emoji in tracked_reactions:
+            if emoji not in reactions:
+                reactions[emoji] = 0
+        emojis = [reactions[e] for e in tracked_reactions]
+        sheet_tools.edit_line(int(message.id), title, author, edit_url, solve_url, *emojis)
 
     async def on_ready(self):
         self.background_task.start()
