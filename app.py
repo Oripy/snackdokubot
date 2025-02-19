@@ -1,4 +1,6 @@
 from datetime import datetime, timedelta
+import functools
+import asyncio
 import re
 from pytz import utc
 import discord
@@ -26,6 +28,12 @@ tracked_reactions = ['<:grn:951196965616644156>',
                      '<:yello:951196965708914769>',
                      '<:red:951196965713117224>']
 
+def to_thread(func):
+    @functools.wraps(func)
+    async def wrapper(*args, **kwargs):
+        return await asyncio.to_thread(func, *args, **kwargs)
+    return wrapper
+
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
@@ -36,6 +44,7 @@ from selenium.webdriver.common.by import By
 import io
 from PIL import Image
 
+@to_thread
 def get_image_and_rules(url):
     options = Options()
     options.add_argument("--headless=new")
@@ -72,7 +81,7 @@ def get_image_and_rules(url):
 def puzzle_desc(url):
     title = author = rules = img = None
     try:
-        title, author, rules, img = get_image_and_rules(url)
+        title, author, rules, img = await get_image_and_rules(url)
     except:
         pass
     if title:
@@ -104,6 +113,7 @@ class Bot(discord.Client):
         with open(schedule_file, 'w') as f:
             json.dump(self.schedule, f)
 
+    @to_thread
     def edit_sheet(self, message, before=None):
         message_urls = list(set(urls.findall(message.content)))
         skip_analysis = False
@@ -158,7 +168,7 @@ class Bot(discord.Client):
         guild_id = payload.guild_id
         message = await self.get_guild(guild_id).get_channel(channel_id).fetch_message(message_id)
         if message.channel.id == int(config['DEFAULT']['SUBMIT_CHANNEL_ID']):
-            self.edit_sheet(message, None)
+            await self.edit_sheet(message, None)
             return
 
     async def on_raw_reaction_remove(self, payload):
@@ -167,7 +177,7 @@ class Bot(discord.Client):
         guild_id = payload.guild_id
         message = await self.get_guild(guild_id).get_channel(channel_id).fetch_message(message_id)
         if message.channel.id == int(config['DEFAULT']['SUBMIT_CHANNEL_ID']):
-            self.edit_sheet(message, None)
+            await self.edit_sheet(message, None)
             return
 
     async def on_raw_message_edit(self, payload):
@@ -177,7 +187,7 @@ class Bot(discord.Client):
         message = await self.get_guild(guild_id).get_channel(channel_id).fetch_message(message_id)
 
         if message.channel.id == int(config['DEFAULT']['SUBMIT_CHANNEL_ID']):
-            self.edit_sheet(message, None)
+            await self.edit_sheet(message, None)
             return
 
     async def on_message(self, message):
@@ -185,7 +195,7 @@ class Bot(discord.Client):
             return
 
         if message.channel.id == int(config['DEFAULT']['SUBMIT_CHANNEL_ID']):
-            self.edit_sheet(message, None)
+            await self.edit_sheet(message, None)
             return
 
         if message.content.startswith('$getinfo'):
@@ -210,7 +220,7 @@ class Bot(discord.Client):
                     if channel:
                         messages = [m async for m in channel.history(limit=limit)]
                         for m in messages:
-                            self.edit_sheet(m, None)
+                            await self.edit_sheet(m, None)
                         break
                 return
 
