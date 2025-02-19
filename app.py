@@ -113,6 +113,19 @@ class Bot(discord.Client):
             return
 
         if message.channel.type == discord.ChannelType.private:
+            if message.content.startswith('$gethistory'):
+                try:
+                    limit = int(message.content.split()[1])
+                except:
+                    limit = 50
+                channel = None
+                for guild in self.guilds:
+                    channel = guild.get_channel(config['DEFAULT']['SUBMIT_CHANNEL_ID'])
+                if channel:
+                    async for message in channel.history(limit=limit):
+                        self.edit_sheet(message, None)
+                return
+
             if message.content.startswith('$time'):
                 try:
                     new_time = int(message.content.split()[1])
