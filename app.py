@@ -331,7 +331,7 @@ class Bot(discord.Client):
                     user = self.get_user(self.user_list[sch[1]]['id'])
                     await user.send(f"Reminder to post Snackdoku today.")
                     await self.send_reminder(sch[2], user)
-                    await self.get_channel(config['DEFAULT']['CHANNEL_ID']).send(f'Reminder sent to {user.mention} for puzzle {sch[2]}.')
+                    await self.get_channel(int(config['DEFAULT']['CHANNEL_ID'])).send(f'Reminder sent to {user.mention} for puzzle {sch[2]}.')
                     # remove pending flag
                     self.schedule[i][3] = f'sent at {datetime.now(utc).isoformat()}'
                     self.save_schedule()
