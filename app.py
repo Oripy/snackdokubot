@@ -51,14 +51,16 @@ from selenium.webdriver.common.by import By
 import io
 from PIL import Image
 
+options = Options()
+options.add_argument("--headless=new")
+options.add_experimental_option("detach", True)
+
+service = Service(config['DEFAULT']['CHROME_PATH'])
+
+driver = webdriver.Chrome(options=options, service=service)
+
 def get_image_and_rules(url):
-    options = Options()
-    options.add_argument("--headless=new")
-    options.add_experimental_option("detach", True)
-
-    service = Service(config['DEFAULT']['CHROME_PATH'])
-
-    driver = webdriver.Chrome(options=options, service=service)
+    print(f"Loading {url}")
     driver.get(url)
 
     # Make sure the page is loaded properly
@@ -81,15 +83,15 @@ def get_image_and_rules(url):
     author = driver.find_element(By.CLASS_NAME, 'puzzle-author').text[4:] # Remove " by " at the begining of the Author name
     rules = driver.find_element(By.CLASS_NAME, 'puzzle-rules').text
 
-    driver.close()
+    # driver.close()
     return title, author, rules, img
 
 def puzzle_desc(url):
     title = author = rules = img = None
     try:
         title, author, rules, img = get_image_and_rules(url)
-    except:
-        pass
+    except Exception as e:
+        print(e)
     if title:
         return f"**{title}** by **{author}**\n\n**Rules:**\n{rules}\n\nSudokuPad: {url}", img
     else:
@@ -297,7 +299,7 @@ class Bot(discord.Client):
                 for i in range(len(self.schedule)):
                     if datetime.fromisoformat(self.schedule[i][0]).date() == datetime.now().date():
                         self.schedule[i][3] = "skipped"
-                        await message.channel.send(f'schedule line for {date} has been skipped')
+                        await message.channel.send(f'schedule line for {self.schedule[i][0]} has been skipped')
                         self.save_schedule()
                         break
                 return
@@ -325,7 +327,7 @@ class Bot(discord.Client):
             sch = self.schedule[i]
             if sch[3] != 'pending':
                 continue
-            if datetime.fromisoformat(sch[0]).astimezone(utc) < datetime.now(utc):
+            if datetime.fromisoformat(f"{sch[0][0:10]}T01:01:00").astimezone(utc) < datetime.now(utc):
                 reminder_time = self.user_list[sch[1]]['time']
                 if datetime.now().astimezone(utc).hour >= reminder_time:
                     user = self.get_user(self.user_list[sch[1]]['id'])
