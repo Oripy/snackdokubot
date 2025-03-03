@@ -53,3 +53,33 @@ def get_line(message_id):
         return sheet.values().get(spreadsheetId=SPREADSHEET_ID, range=f'{SHEET_NAME}!B{index+1}:I{index+1}').execute()['values'][0]
     else:
         return None
+
+def del_line(message_id):
+    message_ids = []
+    try:
+        message_ids = sheet.values().get(spreadsheetId=SPREADSHEET_ID, range=f'{SHEET_NAME}!A1:A', majorDimension='COLUMNS').execute()['values'][0]
+    except KeyError:
+        pass
+
+    if str(message_id) in message_ids:
+        index = message_ids.index(str(message_id))
+        request_body = {
+            "requests": [
+                {
+                    'deleteDimension': {
+                        'range': {
+                            'sheetId': 0,
+                            'dimension': 'ROWS',
+                            'startIndex': index,
+                            'endIndex': index+1,
+                        }
+                    }
+                },
+            ]
+        }
+        sheet.batchUpdate(spreadsheetId=SPREADSHEET_ID,
+                          body=request_body).execute()
+
+if __name__ == '__main__':
+    SPREADSHEET_ID = "1WN7qMfiCbdFmtrlhdsCTDqBk8yFDAreCvpt9347zDg0"
+    del_line(10)

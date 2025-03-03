@@ -193,6 +193,10 @@ class Bot(discord.Client):
 
     async def on_raw_message_edit(self, payload):
         await self.update_sheet(payload)
+    
+    async def on_raw_message_delete(self, payload):
+        if payload.channel_id == int(config['DEFAULT']['SUBMIT_CHANNEL_ID']):
+            await fifo_queue.put(lambda m=payload.message_id: sheet_tools.del_line(m))
 
     async def on_message(self, message):
         if message.author == client.user:
