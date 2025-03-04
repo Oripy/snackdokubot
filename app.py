@@ -252,6 +252,10 @@ class Bot(discord.Client):
 
             if message.content.startswith('$schedule'):
                 text = message.content.split("\n")
+                full = False
+                if len(text[0].split()) > 1:
+                    if text[0][1] == "full":
+                        full = True
                 for line in text[1:]:
                     values = line.split()
                     status = 'pending'
@@ -295,7 +299,12 @@ class Bot(discord.Client):
                 cur_schedule = list(filter(lambda sch: datetime.fromisoformat(sch[0]).date() >= datetime.now().date(), self.schedule))
                 if len(cur_schedule) == 0:
                     await message.channel.send(f'_The schedule is currently empty_')
-                for sch in cur_schedule:
+                for i in range(len(cur_schedule)):
+                    if not full and i >= 7:
+                        if len(cur_schedule) > 7:
+                            await message.channel.send(f'_Schedule truncated, for full schedule send **$schedule full**_')
+                        break
+                    sch = cur_schedule[i]
                     await message.channel.send(f'{datetime.fromisoformat(sch[0]).date().isoformat()}: {sch[1]} {sch[2]} {sch[3]}')
                 return
 
