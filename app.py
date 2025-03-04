@@ -254,7 +254,7 @@ class Bot(discord.Client):
                 text = message.content.split("\n")
                 full = False
                 if len(text[0].split()) > 1:
-                    if text[0][1] == "full":
+                    if text[0].split()[1] == "full":
                         full = True
                 for line in text[1:]:
                     values = line.split()
