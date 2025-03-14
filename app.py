@@ -15,6 +15,7 @@ intents.reactions = True
 intents.members = True
 
 urls = re.compile(r'http[s]*\S+')
+emojis = re.compile(r'<[^>]+alt="([^"]+)"[^>]+>')
 
 import configparser
 
@@ -81,7 +82,10 @@ def get_image_and_rules(url):
     # Get the rest of the data from the page
     title = driver.find_element(By.CLASS_NAME, 'puzzle-title').text
     author = driver.find_element(By.CLASS_NAME, 'puzzle-author').text[4:] # Remove " by " at the begining of the Author name
-    rules = driver.find_element(By.CLASS_NAME, 'puzzle-rules').text
+    rules = driver.find_element(By.CLASS_NAME, 'puzzle-rules').get_attribute("innerHTML")
+    rules = rules.replace("<br>", "")
+    rules = emojis.sub(r"\1", rules)
+    print(rules)
 
     # driver.close()
     return title, author, rules, img
