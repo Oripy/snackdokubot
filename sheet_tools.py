@@ -1,11 +1,16 @@
 import os
 import httplib2
 
+import configparser
+
+config = configparser.ConfigParser()
+config.read('config.ini')
+
 from apiclient import discovery
 from google.oauth2 import service_account
 
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
-SPREADSHEET_ID = "1wsLo_FCTngxTke6MsP2RDdDvgh7vZdS-1B49rGqjV50"
+SPREADSHEET_ID = config['DEFAULT']["SHEET_ID"]
 SHEET_NAME = 'Sheet1'
 DATA_RANGE = f'{SHEET_NAME}!A1:I1'
 
