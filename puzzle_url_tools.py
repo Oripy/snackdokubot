@@ -22,7 +22,7 @@ options.add_experimental_option("detach", True)
 
 service = Service(config['DEFAULT']['CHROME_PATH'])
 
-driver = webdriver.Chrome(options=options)#, service=service)
+driver = webdriver.Chrome(options=options, service=service)
 
 def get_image_and_rules(url):
     print(f"Loading {url}")
