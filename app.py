@@ -285,7 +285,7 @@ class Bot(discord.Client):
             sch = self.schedule[i]
             if sch[3] != 'pending':
                 continue
-            if datetime.fromisoformat(f"{sch[0][0:10]}T01:01:00").astimezone(utc) < datetime.now(utc):
+            if datetime.fromisoformat(f"{sch[0][0:10]}T02:01:00").astimezone(utc) < datetime.now(utc):
                 reminder_time = self.user_list[sch[1]]['time']
                 if datetime.now().astimezone(utc).hour >= reminder_time:
                     user = self.get_user(self.user_list[sch[1]]['id'])
