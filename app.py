@@ -25,9 +25,10 @@ config.read('config.ini')
 schedule_file = "schedule.json"
 users_pref_file = "prefs.json"
 description_file = "description.md"
-tracked_reactions = ['<:grn:951196965616644156>',
+tracked_reactions = [['<:grn:951196965616644156>',
                      '<:yello:951196965708914769>',
-                     '<:red:951196965713117224>']
+                     '<:red:951196965713117224>'],
+                     [':zero:', ':one:', ':two:',':three:', ':four:', ':five:', ':six:', ':seven:', ':eight:', ':nine:', ':ten:']]
 
 fifo_queue = asyncio.Queue()
 async def fifo_worker():
@@ -68,7 +69,7 @@ class Bot(discord.Client):
             json.dump(self.schedule, f)
 
     @to_thread
-    def edit_sheet(self, message, before=None):
+    def edit_sheet(self, message, before=None, sheet=0):
         message_urls = list(set(urls.findall(message.content)))
         skip_analysis = False
         message_date = message.created_at.isoformat()
@@ -78,7 +79,7 @@ class Bot(discord.Client):
             if before_urls == message_urls:
                 skip_analysis = True
 
-        data = sheet_tools.get_line(message.id)
+        data = sheet_tools.get_line(message.id, sheet)
         if data:
             if set([m for m in [data[3], data[4]] if m != ""]) == set(message_urls):
                 skip_analysis = True
@@ -106,11 +107,11 @@ class Bot(discord.Client):
                 if len(message_urls) > 1:
                     edit_url = message_urls[1]
         reactions = {str(r.emoji): r.count for r in message.reactions}
-        for emoji in tracked_reactions:
+        for emoji in tracked_reactions[sheet]:
             if emoji not in reactions:
                 reactions[emoji] = 0
-        emojis = [reactions[e] for e in tracked_reactions]
-        sheet_tools.edit_line(int(message.id), message_date, title, author, edit_url, solve_url, *emojis)
+        emojis = [reactions[e] for e in tracked_reactions[sheet]]
+        sheet_tools.edit_line(int(message.id), message_date, title, author, edit_url, solve_url, emojis, sheet)
 
     async def on_ready(self):
         asyncio.create_task(fifo_worker())
@@ -118,17 +119,22 @@ class Bot(discord.Client):
         print(f'We have logged in as {client.user}')
 
     async def update_sheet(self, payload):
-        if payload.channel_id == int(config['DEFAULT']['SUBMIT_CHANNEL_ID']):
-            guild = self.get_guild(payload.guild_id)
-            if not guild:
-                return
-            channel = guild.get_channel(payload.channel_id)
-            if not channel:
-                return
-            message = await channel.fetch_message(payload.message_id)
-            if message:
-                await fifo_queue.put(lambda m=message: self.edit_sheet(m, None))
+        if payload.channel_id == int(config['DEFAULT']['SUBMIT_CHANNEL0_ID']):
+            sheet = 0
+        elif payload.channel_id == int(config['DEFAULT']['SUBMIT_CHANNEL1_ID']):
+            sheet = 1
+        else:
             return
+        guild = self.get_guild(payload.guild_id)
+        if not guild:
+            return
+        channel = guild.get_channel(payload.channel_id)
+        if not channel:
+            return
+        message = await channel.fetch_message(payload.message_id)
+        if message:
+            await fifo_queue.put(lambda m=message: self.edit_sheet(m, None, sheet))
+        return
 
     async def on_raw_reaction_add(self, payload):
         await self.update_sheet(payload)
@@ -140,15 +146,22 @@ class Bot(discord.Client):
         await self.update_sheet(payload)
     
     async def on_raw_message_delete(self, payload):
-        if payload.channel_id == int(config['DEFAULT']['SUBMIT_CHANNEL_ID']):
-            await fifo_queue.put(lambda m=payload.message_id: sheet_tools.del_line(m))
+        if payload.channel_id == int(config['DEFAULT']['SUBMIT_CHANNEL0_ID']):
+            await fifo_queue.put(lambda m=payload.message_id: sheet_tools.del_line(m, 0))
+
+        if payload.channel_id == int(config['DEFAULT']['SUBMIT_CHANNEL1_ID']):
+            await fifo_queue.put(lambda m=payload.message_id: sheet_tools.del_line(m, 1))
 
     async def on_message(self, message):
         if message.author == client.user:
             return
 
-        if message.channel.id == int(config['DEFAULT']['SUBMIT_CHANNEL_ID']):
-            await fifo_queue.put(lambda m=message: self.edit_sheet(m, None))
+        if message.channel.id == int(config['DEFAULT']['SUBMIT_CHANNEL0_ID']):
+            await fifo_queue.put(lambda m=message: self.edit_sheet(m, None, 0))
+            return
+
+        if message.channel.id == int(config['DEFAULT']['SUBMIT_CHANNEL1_ID']):
+            await fifo_queue.put(lambda m=message: self.edit_sheet(m, None, 1))
             return
 
         if message.content.startswith('$getinfo'):
@@ -167,13 +180,17 @@ class Bot(discord.Client):
                     limit = int(message.content.split()[1])
                 except:
                     limit = 50
+                try:
+                    channel_num = int(message.content.split()[2])
+                except:
+                    channel_num = 0
                 channel = None
                 for guild in self.guilds:
-                    channel = guild.get_channel(int(config['DEFAULT']['SUBMIT_CHANNEL_ID']))
+                    channel = guild.get_channel(int(config['DEFAULT'][f'SUBMIT_CHANNEL{channel_num}_ID']))
                     if channel:
                         messages = [m async for m in channel.history(limit=limit)]
                         for m in messages:
-                            await fifo_queue.put(lambda m=m: self.edit_sheet(m, None))
+                            await fifo_queue.put(lambda m=m: self.edit_sheet(m, None, 0))
                         break
                 return
 
