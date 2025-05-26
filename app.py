@@ -28,7 +28,7 @@ description_file = "description.md"
 tracked_reactions = [['<:grn:951196965616644156>',
                      '<:yello:951196965708914769>',
                      '<:red:951196965713117224>'],
-                     [':zero:', ':one:', ':two:',':three:', ':four:', ':five:', ':six:', ':seven:', ':eight:', ':nine:', ':ten:']]
+                     ['0️⃣', '1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟']]
 
 fifo_queue = asyncio.Queue()
 async def fifo_worker():
