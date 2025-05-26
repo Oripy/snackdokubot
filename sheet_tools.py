@@ -42,7 +42,7 @@ def edit_line(message_id, date, title, author, edit_link, solve_link, reactions,
     data = { 'values': values }
     sheet.values().update(spreadsheetId=SPREADSHEET_ID,
                           body=data,
-                          range=f'{SHEET_NAME[sheet_number]}!A{index+1}:{chr(65+len(values)-1)}{index+1}',
+                          range=f'{SHEET_NAME[sheet_number]}!A{index+1}:{chr(65+len(values[0])-1)}{index+1}',
                           valueInputOption='USER_ENTERED').execute()
 
 def get_line(message_id, sheet_number=0):
