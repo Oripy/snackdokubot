@@ -90,7 +90,7 @@ class Bot(discord.Client):
             [title, author, edit_url, solve_url] = [None]*4
             for u in message_urls:
                 try:
-                    title, author, _, _ = get_image_and_rules(u)
+                    _, title, author, _, _, _ = get_image_and_rules(u)
                     if title:
                         solve_url = u
                         break
