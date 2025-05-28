@@ -117,7 +117,7 @@ def get_image_and_rules(url):
             cache(data_file, image_file, real_url, title, author, rules, img, source)
             return real_url, title, author, rules, open(image_file, "rb"), source
 
-        case "pzv.jp" | "puzz.link":
+        case "pzv.jp" | "puzz.link" | "pzprxs.vercel.app":
             print("puzz.link link")
             # Make sure the page is loaded properly
             #WebDriverWait(driver, 3).until(EC.presence_of_element_located((By.ID, 'divques')))
