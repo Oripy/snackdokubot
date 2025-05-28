@@ -15,7 +15,7 @@ intents.message_content = True
 intents.reactions = True
 intents.members = True
 
-urls = re.compile(r'http[s]*\S+')
+urls = re.compile(r'http[s][A-Za-z0-9-._~:\/?#[\]@!$&\'()*+,;%=]+')
 
 import configparser
 
