@@ -94,7 +94,7 @@ def get_image_and_rules(url):
             rules = rules.replace("<br>", "")
             rules = emojis.sub(r"\1", rules)
             cache(data_file, image_file, real_url, title, author, rules, img, source)
-            return real_url, title, author, rules, img, source
+            return real_url, title, author, rules, open(image_file, "rb"), source
 
         case "swaroopg92.github.io":
             print("Penpa+ link")
@@ -115,7 +115,7 @@ def get_image_and_rules(url):
             rules_div = driver.find_element(By.ID, 'swal2-html-container')
             rules = rules_div.find_element(By.CLASS_NAME, 'info').text
             cache(data_file, image_file, real_url, title, author, rules, img, source)
-            return real_url, title, author, rules, img, source
+            return real_url, title, author, rules, open(image_file, "rb"), source
 
         case "pzv.jp" | "puzz.link":
             print("puzz.link link")
@@ -133,7 +133,7 @@ def get_image_and_rules(url):
             else:
                 source = f'https://pedros.works/kudamono/pages/{type}'
             cache(data_file, image_file, real_url, title, author, rules, img, source)
-            return real_url, title, author, rules, img, source
+            return real_url, title, author, rules, open(image_file, "rb"), source
 
         case "pedros.works":
             print("Kudamono link")
@@ -153,14 +153,14 @@ def get_image_and_rules(url):
             rules = get_rules_from_kudamono(type)
             source = f'https://pedros.works/kudamono/pages/{type}'
             cache(data_file, image_file, real_url, title, author, rules, img, source)
-            return real_url, title, author, rules, img, source
+            return real_url, title, author, rules, open(image_file, "rb"), source
 
         case _:
             print("link type not supported")
             return real_url, "", "", "", Image.new("RGB", (100, 100), (255, 255, 255)), source
 
 def puzzle_desc(url):
-    real_url, title = author = rules = img = None
+    real_url = title = author = rules = img = None
     try:
         _, title, author, rules, img, _ = get_image_and_rules(url)
 

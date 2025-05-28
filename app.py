@@ -81,8 +81,9 @@ class Bot(discord.Client):
 
         data = sheet_tools.get_line(message.id, sheet)
         if data:
-            if set([m for m in [data[3], data[4]] if m != ""]) == set(message_urls):
-                skip_analysis = True
+            if len(data) >= 4:
+                if set([m for m in [data[3], data[4]] if m != ""]) == set(message_urls):
+                    skip_analysis = True
 
         if skip_analysis:
             [title, author, edit_url, solve_url] = data[1:5]
@@ -146,6 +147,7 @@ class Bot(discord.Client):
         await self.update_sheet(payload)
     
     async def on_raw_message_delete(self, payload):
+        return # disabled as it does not work properly (delete the line but then it prevent any other changes to the sheet)
         if payload.channel_id == int(config['DEFAULT']['SUBMIT_CHANNEL0_ID']):
             await fifo_queue.put(lambda m=payload.message_id: sheet_tools.del_line(m, 0))
 
