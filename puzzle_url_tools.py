@@ -168,7 +168,7 @@ def puzzle_desc(url):
         print(e)
 
     if title:
-        return f"**{title}** by **{author}**\n\n**Rules:**\n{rules}\n\Link: {url}", img
+        return f"**{title}** by **{author}**\n\n**Rules:**\n{rules}\n\nLink: {url}", img
     else:
         return f"Link: {url} => {real_url}\n\n_Bot could not retreive more info... sorry_", img
 
